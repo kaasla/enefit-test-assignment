@@ -1,0 +1,45 @@
+# Build artifacts
+target/
+*.jar
+*.war
+*.ear
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+TESTING.md
+TESTING_GUIDE.md
+*.md
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+compose*.yml
+
+# Scripts
+*.sh
+
+# Test containers
+.testcontainers/
+
+# Maven wrapper (keep only what's needed)
+# We keep .mvn/ and mvnw files as they're needed in the Dockerfile
+
+# Cache and temp files
+*.log
+*.tmp
+*.cache

@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: enefitresourceservice
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/enefitresourceservice
+    username: enefitresourceservice_user
+    password: enefitresourceservice_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 600000
+        request.timeout.ms: 30000
+        retry.backoff.ms: 1000
+        max.in.flight.requests.per.connection: 1
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      group-id: enefitresourceservice-group
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: com.kaarelkaasla.enefitresourceservice
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+springdoc:
+  api-docs:
+    resolve-schema-properties: true
+
+logging:
+  level:
+    com.kaarelkaasla.enefitresourceservice: DEBUG
+    org.springframework.kafka: INFO
+
+app:
+  kafka:
+    topic:
+      resource-updates: resource-updates
+      resource-updates-dlt: resource-updates.DLT
+  retry:
+    attempts: 5
+    delay: 5000
+  timezone: Europe/Tallinn

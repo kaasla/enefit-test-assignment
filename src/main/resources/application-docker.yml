@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/enefitresourceservice
+    username: enefitresourceservice_user
+    password: enefitresourceservice_password
+
+  kafka:
+    bootstrap-servers: kafka:29092
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+springdoc:
+  api-docs:
+    resolve-schema-properties: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+app:
+  kafka:
+    topic:
+      resource-updates: resource-updates
+      resource-updates-dlt: resource-updates.DLT
+    retry:
+      attempts: 5
+      delay: 5000
+  retry:
+    attempts: 5
+    delay: 5000
+  timezone: Europe/Tallinn
