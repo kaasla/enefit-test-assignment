@@ -329,9 +329,10 @@ Status: 204 No Content
 ```json
 {
   "operationId": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "COMPLETED",
   "resourceCount": 15,
-  "timestamp": "2025-01-15T10:30:00Z"
+  "status": "COMPLETED",
+  "processedAt": "2025-01-15T10:30:00Z",
+  "operation": "BATCH_NOTIFICATION"
 }
 ```
 
