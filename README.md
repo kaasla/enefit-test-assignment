@@ -81,7 +81,7 @@ docker-compose down --volumes --remove-orphans
 
 ### API Design
 - Base path: `/api/v1/resources` (resource-oriented, plural nouns)
-- Content type: `application/json` only in v1
+- Content type: `application/json`
 - Versioning: path version (`/v1`); additive, backwards-compatible changes preferred
 - Methods:
     - `POST /resources`: create a resource (non-idempotent)
