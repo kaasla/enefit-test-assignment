@@ -59,6 +59,10 @@ http://localhost:18080/api/v1/resources
 
 ### Core Operations
 
+Notes
+- Location is required and must include streetAddress, city, postalCode, and countryCode.
+- Characteristics are optional; when provided, each item requires code, type, and value.
+
 #### Create Resource
 ```bash
 # Create Metering Point
@@ -125,20 +129,6 @@ curl -X POST http://localhost:18080/api/v1/resources \
     ]
   }'
 
-# Create Minimal Resource (no characteristics)
-curl -X POST http://localhost:18080/api/v1/resources \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "METERING_POINT",
-    "countryCode": "FR",
-    "location": {
-      "streetAddress": "10 Rue de la Paix",
-      "city": "Paris",
-      "postalCode": "75001",
-      "countryCode": "FR"
-    },
-    "characteristics": []
-  }'
 ```
 
 #### Get Resources
@@ -546,9 +536,46 @@ open target/site/jacoco/index.html
 ```
 
 ### Database Schema
-- **resources**: Primary entity with type, country, version, timestamps
-- **locations**: One-to-one with resources for address data  
-- **characteristics**: One-to-many with resources for key-value pairs
+
+![Database Diagram](docs/images/db_diagram.png)
+
+The diagram above shows the tables and relationships at a glance. Details follow.
+
+#### resources
+| Column       | Type         | Constraints/Notes |
+|--------------|--------------|-------------------|
+| id           | BIGSERIAL    | Primary key |
+| type         | VARCHAR(20)  | NOT NULL, CHECK in ('METERING_POINT','CONNECTION_POINT') |
+| country_code | VARCHAR(2)   | NOT NULL, CHECK regex '^[A-Z]{2}$' |
+| version      | BIGINT       | NOT NULL, DEFAULT 0 (optimistic locking) |
+| created_at   | TIMESTAMPTZ  | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
+| updated_at   | TIMESTAMPTZ  | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
+
+- Indexes: `idx_resource_country_code(country_code)`, `idx_resource_type(type)`
+
+#### locations (1:1 with resources)
+| Column        | Type         | Constraints/Notes |
+|---------------|--------------|-------------------|
+| id            | BIGSERIAL    | Primary key |
+| resource_id   | BIGINT       | NOT NULL, FK → resources(id) ON DELETE CASCADE |
+| street_address| VARCHAR(255) | NOT NULL |
+| city          | VARCHAR(100) | NOT NULL |
+| postal_code   | VARCHAR(5)   | NOT NULL, CHECK regex '^[0-9]{5}$' |
+| country_code  | VARCHAR(2)   | NOT NULL, CHECK regex '^[A-Z]{2}$' |
+
+- Constraints: `uq_location_resource UNIQUE(resource_id)` enforces one location per resource
+- Note: country_code alignment with the parent resource is enforced at application level
+
+#### characteristics (N:1 to resources)
+| Column      | Type        | Constraints/Notes |
+|-------------|-------------|-------------------|
+| id          | BIGSERIAL   | Primary key |
+| resource_id | BIGINT      | NOT NULL, FK → resources(id) ON DELETE CASCADE |
+| code        | VARCHAR(5)  | NOT NULL |
+| type        | VARCHAR(50) | NOT NULL, CHECK in ('CONSUMPTION_TYPE','CHARGING_POINT','CONNECTION_POINT_STATUS') |
+| char_value  | VARCHAR(255)| NOT NULL |
+
+- Indexes: `idx_characteristic_code(code)`, `idx_characteristic_type(type)`, `idx_characteristic_resource_id(resource_id)`
 
 ### Key Design Patterns
 - **Event-Driven**: All operations publish domain events
