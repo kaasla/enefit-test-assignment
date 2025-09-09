@@ -89,6 +89,7 @@ docker-compose down --volumes --remove-orphans
     - `PUT /resources/{id}`: full replacement of a resource
     - `PATCH /resources/{id}`: partial update; unspecified fields remain unchanged
     - `DELETE /resources/{id}`: delete by id
+    - `POST /resources/send-all`: send all resources to Kafka
 - **PATCH semantics**:
     - Uses optional fields; only provided fields are applied
     - Providing `characteristics` replaces the entire set
