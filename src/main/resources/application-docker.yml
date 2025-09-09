@@ -28,11 +28,4 @@ app:
   kafka:
     topic:
       resource-updates: resource-updates
-      resource-updates-dlt: resource-updates.DLT
-    retry:
-      attempts: 5
-      delay: 5000
-  retry:
-    attempts: 5
-    delay: 5000
   timezone: Europe/Tallinn

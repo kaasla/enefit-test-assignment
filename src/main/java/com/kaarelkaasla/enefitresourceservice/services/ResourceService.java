@@ -172,6 +172,8 @@ public class ResourceService {
       log.debug("Publishing batch notifications for {} resources", responses.size());
     }
 
+    // Simplified: fire-and-forget publishing; does not persist an outbox or operation state.
+    // For production, prefer a transactional outbox and add an operation tracker API.
     try {
       eventService.publishBatchNotification(responses);
     } catch (RuntimeException e) {
@@ -179,6 +181,7 @@ public class ResourceService {
       throw e;
     }
 
+    // Simplified status reporting for this demo implementation.
     BatchNotificationResponse response =
         new BatchNotificationResponse(
             java.util.UUID.randomUUID(),

@@ -42,7 +42,7 @@ docker-compose down --volumes --remove-orphans
 ### Event Streaming  
 - **Real-time Events**: All CRUD operations publish to Kafka
 - **Event Types**: CREATED, UPDATED, DELETED, BATCH_NOTIFICATION
-- **Dead Letter Queue**: Failed messages routed to DLT for monitoring
+  
 - **Resilience**: Producer retries with 10-minute timeout
 
 ### Validation & Error Handling
@@ -335,6 +335,8 @@ Status: 204 No Content
 }
 ```
 
+Note: This is a simplified async dispatch. Status "COMPLETED" only reflects that dispatch was initiated, not downstream processing. A production-grade design should persist events using a transactional outbox and expose an operation tracker to reflect eventual success/failure.
+
 ### Error Response Formats
 
 #### Validation Error Response (400)
@@ -484,7 +486,6 @@ Status: 204 No Content
 
 ### Kafka Topics
 - **Main Topic**: `resource-updates` (3 partitions)
-- **Dead Letter Topic**: `resource-updates.DLT` (3 partitions)
 
 ### Monitoring Events
 ```bash
@@ -498,11 +499,7 @@ docker-compose exec kafka kafka-console-consumer \
   --from-beginning
 ```
 
-### Dead Letter Queue (DLT)
-- **Failed Messages**: Automatically routed to `resource-updates.DLT` 
-- **Retry Logic**: 5 attempts with 5-second delays before DLT
-- **Error Categories**: Serialization, transient, validation, business logic
-- **Monitoring**: Structured logging for operational visibility
+  
 
 ## Testing
 
@@ -543,8 +540,7 @@ open target/site/jacoco/index.html
                               ▼
                     ┌──────────────────────┐
                     │ Kafka Topics         │
-                    │ •resource-updates    │
-                    │ •resource-updates.DLT│
+                    │ • resource-updates   │
                     └──────────────────────┘
 ```
 
