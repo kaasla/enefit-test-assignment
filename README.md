@@ -82,14 +82,14 @@ docker-compose down --volumes --remove-orphans
 ### API Design
 - Base path: `/api/v1/resources` (resource-oriented, plural nouns)
 - Content type: `application/json`
-- Versioning: path version (`/v1`); additive, backwards-compatible changes preferred
+- Versioning: path version (`/v1`)
 - Methods:
-    - `POST /resources`: create a resource (non-idempotent)
-    - `GET /resources`: list resources (simple list in v1)
+    - `POST /resources`: create a resource
+    - `GET /resources`: list resources
     - `GET /resources/{id}`: fetch by id
     - `PUT /resources/{id}`: full replacement of a resource
     - `PATCH /resources/{id}`: partial update; unspecified fields remain unchanged
-    - `DELETE /resources/{id}`: delete by id (idempotent)
+    - `DELETE /resources/{id}`: delete by id
 - PATCH semantics:
     - Uses optional fields; only provided fields are applied
     - Providing `characteristics` replaces the entire set
