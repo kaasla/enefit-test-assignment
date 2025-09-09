@@ -40,7 +40,7 @@ docker-compose down --volumes --remove-orphans
 - **Optimistic Locking**: Prevents concurrent modification conflicts
 
 ### Event Streaming
-- **Real-time Events**: All CRUD operations publish to Kafka
+- **Real-time Events**: CRUD operations publish to Kafka
 - **Event Types**: CREATED, UPDATED, DELETED, BATCH_NOTIFICATION
 
 - **Resilience**: Producer retries with 10-minute timeout
