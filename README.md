@@ -50,6 +50,96 @@ docker-compose down --volumes --remove-orphans
 - **Global Exception Handling**: Standardized error responses
 - **Field-level Errors**: Detailed validation failure messages
 
+## System Design
+
+### Architecture
+```
+┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
+│   REST API      │    │   Service    │    │   Database      │
+│ (Controllers)   │───▶│   Layer      │───▶│ (PostgreSQL)    │
+│                 │    │              │    │                 │
+└─────────────────┘    └──────┬───────┘    └─────────────────┘
+                              │
+                              ▼
+                       ┌──────────────┐
+                       │    Kafka     │
+                       │  Producer    │
+                       └──────┬───────┘
+                              ▼
+                    ┌──────────────────────┐
+                    │ Kafka Topics         │
+                    │ • resource-updates   │
+                    └──────────────────────┘
+```
+
+### Key Design Patterns
+- Event-driven: all operations publish domain events
+- Optimistic locking: version-based conflict resolution
+- Global exception handling: consistent error responses
+- Validation pipeline: layered request validation
+- Resilient messaging: producer retries and timeouts
+
+### API Design
+- Base path: `/api/v1/resources` (resource-oriented, plural nouns)
+- Content type: `application/json` only in v1
+- Versioning: path version (`/v1`); additive, backwards-compatible changes preferred
+- Methods:
+    - `POST /resources`: create a resource (non-idempotent)
+    - `GET /resources`: list resources (simple list in v1)
+    - `GET /resources/{id}`: fetch by id
+    - `PUT /resources/{id}`: full replacement of a resource
+    - `PATCH /resources/{id}`: partial update; unspecified fields remain unchanged
+    - `DELETE /resources/{id}`: delete by id (idempotent)
+- PATCH semantics:
+    - Uses optional fields; only provided fields are applied
+    - Providing `characteristics` replaces the entire set
+    - Location countryCode is normalized to match the parent resource
+- Concurrency: optimistic locking via `version` on the resource; conflicting writes return 409
+- Errors: standardized problem shape with `status`, `error`, `message`, `path`, `timestamp`, and optional `fieldErrors`
+- Discoverability: Swagger/OpenAPI available at `/swagger-ui/index.html`
+
+### Database Schema
+
+![Database Diagram](docs/images/db_diagram.png)
+
+The diagram above shows the tables and relationships at a glance. Details follow.
+
+#### resources
+| Column       | Type         | Constraints/Notes |
+|--------------|--------------|-------------------|
+| id           | BIGSERIAL    | Primary key |
+| type         | VARCHAR(20)  | NOT NULL, CHECK in ('METERING_POINT','CONNECTION_POINT') |
+| country_code | VARCHAR(2)   | NOT NULL, CHECK regex '^[A-Z]{2}$' |
+| version      | BIGINT       | NOT NULL, DEFAULT 0 (optimistic locking) |
+| created_at   | TIMESTAMPTZ  | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
+| updated_at   | TIMESTAMPTZ  | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
+
+- Indexes: `idx_resource_country_code(country_code)`, `idx_resource_type(type)`
+
+#### locations (1:1 with resources)
+| Column        | Type         | Constraints/Notes |
+|---------------|--------------|-------------------|
+| id            | BIGSERIAL    | Primary key |
+| resource_id   | BIGINT       | NOT NULL, FK → resources(id) ON DELETE CASCADE |
+| street_address| VARCHAR(255) | NOT NULL |
+| city          | VARCHAR(100) | NOT NULL |
+| postal_code   | VARCHAR(5)   | NOT NULL, CHECK regex '^[0-9]{5}$' |
+| country_code  | VARCHAR(2)   | NOT NULL, CHECK regex '^[A-Z]{2}$' |
+
+- Constraints: `uq_location_resource UNIQUE(resource_id)` enforces one location per resource
+- Note: country_code alignment with the parent resource is enforced at application level
+
+#### characteristics (N:1 to resources)
+| Column      | Type        | Constraints/Notes |
+|-------------|-------------|-------------------|
+| id          | BIGSERIAL   | Primary key |
+| resource_id | BIGINT      | NOT NULL, FK → resources(id) ON DELETE CASCADE |
+| code        | VARCHAR(5)  | NOT NULL |
+| type        | VARCHAR(50) | NOT NULL, CHECK in ('CONSUMPTION_TYPE','CHARGING_POINT','CONNECTION_POINT_STATUS') |
+| char_value  | VARCHAR(255)| NOT NULL |
+
+- Indexes: `idx_characteristic_code(code)`, `idx_characteristic_type(type)`, `idx_characteristic_resource_id(resource_id)`
+
 ## API Reference
 
 ### Base URL
@@ -512,74 +602,3 @@ open target/site/jacoco/index.html
 ./mvnw -Dtest=ResourceControllerHappyPathTest test  # Controller
 ./mvnw -Dtest="*ValidationTest" test            # Validation
 ```
-
-## System Design
-
-### Architecture
-```
-┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   REST API      │    │   Service    │    │   Database      │
-│ (Controllers)   │───▶│   Layer      │───▶│ (PostgreSQL)    │
-│                 │    │              │    │                 │
-└─────────────────┘    └──────┬───────┘    └─────────────────┘
-                              │
-                              ▼
-                       ┌──────────────┐
-                       │    Kafka     │
-                       │  Producer    │
-                       └──────┬───────┘
-                              ▼
-                    ┌──────────────────────┐
-                    │ Kafka Topics         │
-                    │ • resource-updates   │
-                    └──────────────────────┘
-```
-
-### Database Schema
-
-![Database Diagram](docs/images/db_diagram.png)
-
-The diagram above shows the tables and relationships at a glance. Details follow.
-
-#### resources
-| Column       | Type         | Constraints/Notes |
-|--------------|--------------|-------------------|
-| id           | BIGSERIAL    | Primary key |
-| type         | VARCHAR(20)  | NOT NULL, CHECK in ('METERING_POINT','CONNECTION_POINT') |
-| country_code | VARCHAR(2)   | NOT NULL, CHECK regex '^[A-Z]{2}$' |
-| version      | BIGINT       | NOT NULL, DEFAULT 0 (optimistic locking) |
-| created_at   | TIMESTAMPTZ  | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
-| updated_at   | TIMESTAMPTZ  | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
-
-- Indexes: `idx_resource_country_code(country_code)`, `idx_resource_type(type)`
-
-#### locations (1:1 with resources)
-| Column        | Type         | Constraints/Notes |
-|---------------|--------------|-------------------|
-| id            | BIGSERIAL    | Primary key |
-| resource_id   | BIGINT       | NOT NULL, FK → resources(id) ON DELETE CASCADE |
-| street_address| VARCHAR(255) | NOT NULL |
-| city          | VARCHAR(100) | NOT NULL |
-| postal_code   | VARCHAR(5)   | NOT NULL, CHECK regex '^[0-9]{5}$' |
-| country_code  | VARCHAR(2)   | NOT NULL, CHECK regex '^[A-Z]{2}$' |
-
-- Constraints: `uq_location_resource UNIQUE(resource_id)` enforces one location per resource
-- Note: country_code alignment with the parent resource is enforced at application level
-
-#### characteristics (N:1 to resources)
-| Column      | Type        | Constraints/Notes |
-|-------------|-------------|-------------------|
-| id          | BIGSERIAL   | Primary key |
-| resource_id | BIGINT      | NOT NULL, FK → resources(id) ON DELETE CASCADE |
-| code        | VARCHAR(5)  | NOT NULL |
-| type        | VARCHAR(50) | NOT NULL, CHECK in ('CONSUMPTION_TYPE','CHARGING_POINT','CONNECTION_POINT_STATUS') |
-| char_value  | VARCHAR(255)| NOT NULL |
-
-- Indexes: `idx_characteristic_code(code)`, `idx_characteristic_type(type)`, `idx_characteristic_resource_id(resource_id)`
-
-### Key Design Patterns
-- **Event-Driven**: All operations publish domain events
-- **Optimistic Locking**: Version-based conflict resolution
-- **Global Exception Handling**: Consistent error responses
-- **Validation Pipeline**: Multiple layers of input validation
-- **Circuit Breaker Pattern**: Kafka producer resilience
