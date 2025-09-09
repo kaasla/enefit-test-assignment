@@ -72,30 +72,30 @@ docker-compose down --volumes --remove-orphans
 ```
 
 ### Key Design Patterns
-- Event-driven: all operations publish domain events
-- Optimistic locking: version-based conflict resolution
-- Global exception handling: consistent error responses
-- Validation pipeline: layered request validation
-- Resilient messaging: producer retries and timeouts
+- **Event-driven**: all operations publish domain events
+- **Optimistic locking**: version-based conflict resolution
+- **Global exception handling**: consistent error responses
+- **Validation pipeline**: layered request validation
+- **Resilient messaging**: producer retries and timeouts
 
 ### API Design
-- Base path: `/api/v1/resources` (resource-oriented, plural nouns)
-- Content type: `application/json`
-- Versioning: path version (`/v1`)
-- Methods:
+- **Base path**: `/api/v1/resources` (resource-oriented, plural nouns)
+- **Content type**: `application/json`
+- **Versioning**: path version (`/v1`)
+- **Methods**:
     - `POST /resources`: create a resource
     - `GET /resources`: list resources
     - `GET /resources/{id}`: fetch by id
     - `PUT /resources/{id}`: full replacement of a resource
     - `PATCH /resources/{id}`: partial update; unspecified fields remain unchanged
     - `DELETE /resources/{id}`: delete by id
-- PATCH semantics:
+- **PATCH semantics**:
     - Uses optional fields; only provided fields are applied
     - Providing `characteristics` replaces the entire set
     - Location countryCode is normalized to match the parent resource
-- Concurrency: optimistic locking via `version` on the resource; conflicting writes return 409
-- Errors: standardized problem shape with `status`, `error`, `message`, `path`, `timestamp`, and optional `fieldErrors`
-- Discoverability: Swagger/OpenAPI available at `/swagger-ui/index.html`
+- **Concurrency**: optimistic locking via `version` on the resource; conflicting writes return 409
+- **Errors**: standardized problem shape with `status`, `error`, `message`, `path`, `timestamp`, and optional `fieldErrors`
+- **Discoverability**: Swagger/OpenAPI available at `/swagger-ui/index.html`
 
 ### Event Design
 #### Event Format
@@ -117,13 +117,13 @@ docker-compose down --volumes --remove-orphans
 ```
 
 #### Event Types
-- CREATED: new resource created
-- UPDATED: resource modified
-- DELETED: resource removed
-- BATCH_NOTIFICATION: all resources sent via `/send-all` endpoint
+- **CREATED**: new resource created
+- **UPDATED**: resource modified
+- **DELETED**: resource removed
+- **BATCH_NOTIFICATION**: all resources sent via `/send-all` endpoint
 
 #### Kafka Topics
-- Main topic: `resource-updates` (3 partitions)
+- **Main topic**: `resource-updates` (3 partitions)
 
 #### Monitoring Events
 ```bash
