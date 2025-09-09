@@ -42,7 +42,6 @@ docker-compose down --volumes --remove-orphans
 ### Event Streaming
 - **Real-time Events**: CRUD operations publish to Kafka
 - **Event Types**: CREATED, UPDATED, DELETED, BATCH_NOTIFICATION
-
 - **Resilience**: Producer retries with 10-minute timeout
 
 ### Validation & Error Handling
