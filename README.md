@@ -121,7 +121,7 @@ docker-compose down --volumes --remove-orphans
 - CREATED: new resource created
 - UPDATED: resource modified
 - DELETED: resource removed
-- BATCH_NOTIFICATION: all resources sent via send-all endpoint
+- BATCH_NOTIFICATION: all resources sent via `/send-all` endpoint
 
 #### Kafka Topics
 - Main topic: `resource-updates` (3 partitions)
