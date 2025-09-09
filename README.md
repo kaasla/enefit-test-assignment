@@ -39,10 +39,10 @@ docker-compose down --volumes --remove-orphans
 - **Characteristics**: Configurable key-value pairs with type validation
 - **Optimistic Locking**: Prevents concurrent modification conflicts
 
-### Event Streaming  
+### Event Streaming
 - **Real-time Events**: All CRUD operations publish to Kafka
 - **Event Types**: CREATED, UPDATED, DELETED, BATCH_NOTIFICATION
-  
+
 - **Resilience**: Producer retries with 10-minute timeout
 
 ### Validation & Error Handling
@@ -97,6 +97,46 @@ docker-compose down --volumes --remove-orphans
 - Concurrency: optimistic locking via `version` on the resource; conflicting writes return 409
 - Errors: standardized problem shape with `status`, `error`, `message`, `path`, `timestamp`, and optional `fieldErrors`
 - Discoverability: Swagger/OpenAPI available at `/swagger-ui/index.html`
+
+### Event Design
+#### Event Format
+```json
+{
+  "eventType": "CREATED",
+  "resourceId": 123,
+  "resource": {
+    "id": 123,
+    "type": "METERING_POINT",
+    "countryCode": "US",
+    "version": 1,
+    "createdAt": "2025-01-15T10:30:00Z",
+    "updatedAt": "2025-01-15T10:30:00Z"
+  },
+  "eventTimestamp": "2025-01-15T10:30:00Z",
+  "eventId": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+#### Event Types
+- CREATED: new resource created
+- UPDATED: resource modified
+- DELETED: resource removed
+- BATCH_NOTIFICATION: all resources sent via send-all endpoint
+
+#### Kafka Topics
+- Main topic: `resource-updates` (3 partitions)
+
+#### Monitoring Events
+```bash
+# Watch events in real-time via Kafka UI
+open http://localhost:18081
+
+# Or via command line
+docker-compose exec kafka kafka-console-consumer \
+  --bootstrap-server localhost:9092 \
+  --topic resource-updates \
+  --from-beginning
+```
 
 ### Database Schema
 
@@ -331,7 +371,7 @@ curl -X POST http://localhost:18080/api/v1/resources/send-all
 {
   "id": 123,
   "type": "METERING_POINT",
-  "countryCode": "US", 
+  "countryCode": "US",
   "version": 1,
   "createdAt": "2025-01-15T10:30:00Z",
   "updatedAt": "2025-01-15T10:30:00Z",
@@ -339,14 +379,14 @@ curl -X POST http://localhost:18080/api/v1/resources/send-all
     "id": 456,
     "streetAddress": "123 Main St",
     "city": "New York",
-    "postalCode": "10001", 
+    "postalCode": "10001",
     "countryCode": "US"
   },
   "characteristics": [{
     "id": 789,
     "code": "C001",
     "type": "CONSUMPTION_TYPE",
-    "value": "RESIDENTIAL" 
+    "value": "RESIDENTIAL"
   }]
 }
 ```
@@ -377,7 +417,7 @@ curl -X POST http://localhost:18080/api/v1/resources/send-all
   },
   {
     "id": 124,
-    "type": "CONNECTION_POINT", 
+    "type": "CONNECTION_POINT",
     "countryCode": "DE",
     "version": 2,
     "createdAt": "2025-01-15T11:00:00Z",
@@ -424,7 +464,7 @@ Note: This is a simplified async dispatch. Status "COMPLETED" only reflects that
 ```json
 {
   "status": 400,
-  "error": "Bad Request", 
+  "error": "Bad Request",
   "message": "Validation failed",
   "path": "/api/v1/resources",
   "timestamp": "2025-01-15T10:30:00Z",
@@ -436,7 +476,7 @@ Note: This is a simplified async dispatch. Status "COMPLETED" only reflects that
     },
     {
       "field": "location.postalCode",
-      "rejectedValue": "invalid", 
+      "rejectedValue": "invalid",
       "message": "Postal code must be exactly 5 digits"
     }
   ]
@@ -449,7 +489,7 @@ Note: This is a simplified async dispatch. Status "COMPLETED" only reflects that
   "status": 400,
   "error": "Bad Request",
   "message": "JSON parse error: Unexpected end-of-input",
-  "path": "/api/v1/resources", 
+  "path": "/api/v1/resources",
   "timestamp": "2025-01-15T10:30:00Z",
   "fieldErrors": null
 }
@@ -472,7 +512,7 @@ Note: This is a simplified async dispatch. Status "COMPLETED" only reflects that
 {
   "status": 404,
   "error": "Not Found",
-  "message": "Resource with ID 999 not found", 
+  "message": "Resource with ID 999 not found",
   "path": "/api/v1/resources/999",
   "timestamp": "2025-01-15T10:30:00Z",
   "fieldErrors": null
@@ -539,49 +579,7 @@ Note: This is a simplified async dispatch. Status "COMPLETED" only reflects that
 }
 ```
 
-## Event Design
-
-### Event Format
-```json
-{
-  "eventType": "CREATED",
-  "resourceId": 123,
-  "resource": {
-    "id": 123,
-    "type": "METERING_POINT",
-    "countryCode": "US",
-    "version": 1,
-    "createdAt": "2025-01-15T10:30:00Z",
-    "updatedAt": "2025-01-15T10:30:00Z"
-  },
-  "eventTimestamp": "2025-01-15T10:30:00Z",
-  "eventId": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-### Event Types
-- **CREATED**: New resource created
-- **UPDATED**: Resource modified  
-- **DELETED**: Resource removed
-- **BATCH_NOTIFICATION**: All resources sent via send-all endpoint
-
-### Kafka Topics
-- **Main Topic**: `resource-updates` (3 partitions)
-
-### Monitoring Events
-```bash
-# Watch events in real-time via Kafka UI
-open http://localhost:18081
-
-# Or via command line
-docker-compose exec kafka kafka-console-consumer \
-  --bootstrap-server localhost:9092 \
-  --topic resource-updates \
-  --from-beginning
-```
-
-  
-
+ 
 ## Testing
 
 ### Recommended Approach
